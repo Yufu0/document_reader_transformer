@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     model = VisionEncoderDecoderModel(config=config)
 
-    inputs = torch.ones(1, 3, 100, 100)
+    inputs = torch.ones(1, 3, 30, 30)
     input_ids = torch.ones(10, 512).int()
     outputs = model(
         pixel_values=inputs,
