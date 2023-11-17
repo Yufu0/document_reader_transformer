@@ -4,15 +4,16 @@
   ],
   "encoder": {
     "model_type": "docparser",
-    "ci": [64, 128, 256, 512, 768, 1024],
-    "hidden_size": 1024,
+    "ci": [32, 64, 128, 256, 384, 512],
+    "hidden_size": 512,
     "is_decoder":false
   },
   "decoder": {
-    "d_model": 1024,
+    "d_model": 512,
     "model_type": "roberta",
     "is_decoder":true,
-    "add_cross_attention":true
+    "add_cross_attention":true,
+    "decoder_layers": 1
   },
   "is_encoder_decoder": true,
   "model_type": "vision-encoder-decoder",
