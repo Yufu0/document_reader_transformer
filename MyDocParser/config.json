@@ -1,0 +1,20 @@
+{
+  "architectures": [
+    "VisionEncoderDecoderModel"
+  ],
+  "encoder": {
+    "model_type": "docparser",
+    "ci": [64, 128, 256, 512, 768, 1024],
+    "hidden_size": 1024,
+    "is_decoder":false
+  },
+  "decoder": {
+    "d_model": 1024,
+    "model_type": "roberta",
+    "is_decoder":true,
+    "add_cross_attention":true
+  },
+  "is_encoder_decoder": true,
+  "model_type": "vision-encoder-decoder",
+  "torch_dtype": "float32"
+}
