@@ -2,7 +2,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader
 from transformers import AutoConfig, AutoModel, VisionEncoderDecoderConfig, VisionEncoderDecoderModel, AutoTokenizer
 import torch
-from DocParser import DocParserConfig, DocParserModel
+from MyDocParser.DocParser import DocParserConfig, DocParserModel
 
 
 def load_model():
