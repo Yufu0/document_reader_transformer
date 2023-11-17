@@ -176,6 +176,7 @@ class DocParserModel(nn.Module):
             outConv2dput_attentions: Optional[bool] = None,
             output_hidden_states: Optional[bool] = None,
             return_dict: Optional[bool] = None,
+            output_attentions = None
     ) -> Union[Tuple, DocParserOutput]:
         print("ok on commence")
         print(pixel_values.shape)

@@ -9,7 +9,7 @@ def load_model():
     AutoConfig.register("docparser", DocParserConfig)
     AutoModel.register(DocParserConfig, DocParserModel)
 
-    config = VisionEncoderDecoderConfig.from_pretrained("./")  # fichier config.json
+    config = VisionEncoderDecoderConfig.from_pretrained("./MyDocParser/")  # fichier config.json
 
     model = VisionEncoderDecoderModel(config=config)
 
@@ -29,28 +29,30 @@ def preprocessing(ocr, tokenizer):
 
 def train(epochs, model, tokenizer, train_loader, criterion, optimizer):
     for epoch in range(epochs):
+        losses = []
         for batch in train_loader:
             pixel_values = batch["image"]
             pixel_values = pixel_values.permute(0, 3, 1, 2)
-            pixel_values = pixel_values.float().to("cuda")
+            pixel_values = pixel_values.float().to("cpu")
             labels = preprocessing(batch["ocr"], tokenizer)
 
             if len(labels) > 512:
                 labels = labels[:300]
             length = len(labels)
-            labels = torch.Tensor(labels).long().to("cuda")
+            labels = torch.Tensor(labels).long().to("cpu")
 
-            input_ids = torch.ones(1, length).long().to("cuda")
+            input_ids = torch.ones(1, length).long().to("cpu")
             output = model(pixel_values=pixel_values, decoder_input_ids=input_ids, labels=labels)
 
             loss = output.loss
+            losses.append(loss)
 
             print(loss)
 
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
-            break
+        print(f"epoch {epoch} : {sum(losses) / len(losses)}")
 
 
 if __name__ == '__main__':
@@ -60,7 +62,7 @@ if __name__ == '__main__':
     # data_image = torch.Tensor([img for img in data["image"]])
     train_loader = DataLoader(dataset=data, batch_size=1, shuffle=True)
 
-    model = load_model().to("cuda")
+    model = load_model().to("cpu")
     tokenizer = load_tokenizer()
 
     model.config.decoder_start_token_id = tokenizer.cls_token_id
