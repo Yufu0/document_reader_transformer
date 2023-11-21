@@ -68,6 +68,7 @@ def evaluate (model, img_test):
     print(model(img_test))
 
 
+
 if __name__ == '__main__':
     # load the model
     model = load_model().to(device)
