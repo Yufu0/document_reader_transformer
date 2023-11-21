@@ -9,7 +9,7 @@ import gc
 from pretrained_model.pretrained_model import load_model, save_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Run on", device)
+print("Run on device:", device)
 
 
 def load_tokenizer():
