@@ -52,6 +52,9 @@ def train(epochs, model, tokenizer, train_loader, criterion, optimizer):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+        
+        if epoch % 5 == 0:
+        	save_model(model)
         print(f"epoch {epoch} : {sum(losses) / len(losses)}")
 
 
