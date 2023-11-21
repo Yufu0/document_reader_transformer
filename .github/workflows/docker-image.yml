@@ -20,4 +20,4 @@ jobs:
        run: |
          docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
          docker build . --file Dockerfile --tag $DOCKER_USER/document_reader_transformer:${{ steps.meta.outputs.tags }}
-         docker push $DOCKER_USER/flask-app:latest
+         docker push $DOCKER_USER/document_reader_transformer:${{ steps.meta.outputs.tags }}
