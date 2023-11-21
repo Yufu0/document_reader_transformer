@@ -1,10 +1,13 @@
+from typing import Optional, Tuple, Union, NamedTuple
+
 import torch
 import torch.nn as nn
 from torch.nn import TransformerDecoder, TransformerDecoderLayer
 from torchvision.models.convnext import CNBlock, LayerNorm2d
 from torchvision.models.swin_transformer import SwinTransformerBlock
-
+from dataclasses import dataclass
 from transformers.configuration_utils import PretrainedConfig
+from transformers.utils import ModelOutput
 
 
 class PatchEmbedding(nn.Module):
@@ -108,7 +111,7 @@ class Encoder(nn.Module):
         x = x.permute(0, 3, 1, 2)
 
         x = x.permute(0, 2, 3, 1)
-        x = torch.reshape(x, (1, 1, -1, self.Ci[5]))
+        x = torch.reshape(x, (1, -1, self.Ci[5]))
 
         return x
 
@@ -141,6 +144,17 @@ class DocParserConfig(PretrainedConfig):
         self.ci = ci
 
 
+
+@dataclass
+class DocParserOutput(ModelOutput):
+    last_hidden_state: torch.FloatTensor = None
+    # pooler_output: Optional[torch.FloatTensor] = None
+    hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+    attentions: Optional[Tuple[torch.FloatTensor]] = None
+    reshaped_hidden_states: Optional[Tuple[torch.FloatTensor]] = None
+
+
+
 class DocParserModel(nn.Module):
     def __init__(self, config: DocParserConfig):
         super().__init__()
@@ -155,15 +169,26 @@ class DocParserModel(nn.Module):
     def _from_config(config: DocParserConfig):
         return DocParserModel(config)
 
-    def forward(self, x, output_attentions=None,
-                output_hidden_states=None,
-                return_dict=None,):
-        encoder_output = self.encoder(x)
+    def forward(
+            self,
+            pixel_values: Optional[torch.FloatTensor] = None,
+            head_mask: Optional[torch.FloatTensor] = None,
+            outConv2dput_attentions: Optional[bool] = None,
+            output_hidden_states: Optional[bool] = None,
+            return_dict: Optional[bool] = None,
+            output_attentions = None
+    ) -> Union[Tuple, DocParserOutput]:
+        print("ok on commence")
+        print(pixel_values.shape)
+        encoder_output = self.encoder(pixel_values)
         # decoder_sequence = torch.randn(1, 256, 1024)
         # x = self.decoder(encoder_output, decoder_sequence)
-        return encoder_output
+        output = DocParserOutput(
+            last_hidden_state=encoder_output,
+        )
+        print(output[0].shape)
+        return output
 
     def get_output_embeddings(self):
         return None
-
 
