@@ -6,8 +6,7 @@ import torch
 from transformers import AutoTokenizer
 import gc
 
-from pretrained_model.pretrained_model import load_model
-
+from pretrained_model.pretrained_model import load_model, save_model
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Run on", device)
@@ -26,6 +25,13 @@ def preprocessing(image_ocr, tokenizer):
         )["input_ids"]
     }
 
+def preprocessing_generator(image_ocr, tokenizer):
+    return {
+        "image": image_ocr["image"],
+        "ocr": tokenizer(
+            " ".join([f"<{elem['label']} > {elem['text']} <{elem['label']} />" for elem in image_ocr["ocr"]])
+        )["input_ids"]
+    }
 
 def train(epochs, model, tokenizer, train_loader, optimizer):
     for epoch in range(epochs):
@@ -57,12 +63,12 @@ def train(epochs, model, tokenizer, train_loader, optimizer):
             gc.collect()
         
         if epoch % 5 == 0:
-        	save_model(model)
+            save_model(model)
         print(f"epoch {epoch} : {sum(losses) / len(losses)}")
 
 def evaluate (model, img_test):
-	model.eval()
-	print(model(img_test))
+    model.eval()
+    print(model(img_test))
 
 
 if __name__ == '__main__':
