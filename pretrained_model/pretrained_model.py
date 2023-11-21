@@ -15,6 +15,14 @@ def create_pretrained_model() -> VisionEncoderDecoderModel:
     return model
 
 
-if __name__ == '__main__':
-    model = create_pretrained_model()
-    print(model)
+# if __name__ == '__main__':
+#     model = create_pretrained_model()
+#     print(model)
+
+def load_model() -> VisionEncoderDecoderModel:
+    # load fine-tuned model
+    model = VisionEncoderDecoderModel.from_pretrained("./pretrained_model/model/")
+    return model
+
+def save_model(model: VisionEncoderDecoderModel):
+    model.save_pretrained("./pretrained_model/model/")
