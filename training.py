@@ -59,8 +59,8 @@ def train(epochs, model, tokenizer, train_loader, optimizer):
             
             gc.collect()
         
-        # if epoch % 5 == 0:
-        #     save_model(model)
+        if epoch % 1 == 0:
+            save_model(model)
         print(f"epoch {epoch} : {sum(losses) / len(losses)}")
 
 def evaluate (model, img_test):
