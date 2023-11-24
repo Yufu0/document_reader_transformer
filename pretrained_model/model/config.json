@@ -1,4 +1,5 @@
 {
+  "_name_or_path": "./pretrained_model/model/",
   "architectures": [
     "VisionEncoderDecoderModel"
   ],
@@ -82,6 +83,7 @@
     "use_cache": true,
     "vocab_size": 50265
   },
+  "decoder_start_token_id": 0,
   "encoder": {
     "_name_or_path": "microsoft/swinv2-tiny-patch4-window8-256",
     "add_cross_attention": false,
@@ -2180,7 +2182,8 @@
   },
   "is_encoder_decoder": true,
   "model_type": "vision-encoder-decoder",
+  "pad_token_id": 1,
   "tie_word_embeddings": false,
   "torch_dtype": "float32",
-  "transformers_version": "4.35.2"
+  "transformers_version": "4.35.0"
 }

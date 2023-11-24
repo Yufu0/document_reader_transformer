@@ -62,13 +62,13 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             pixel_values, labels = batch["image"], batch["ocr"]
             # pixel_values = pixel_values.permute(0, 3, 1, 2).float() / 255
 
-            loss = model(pixel_values=pixel_values, labels=labels).loss
+            output = model(pixel_values=pixel_values, labels=labels)
 
-            # loss = output.loss
+            loss = output.loss
             # losses.append(loss)
 
             print(loss)
-            # print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
+            print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
 
             # loss.backward()
             accelerator.backward(loss)
@@ -114,7 +114,7 @@ def main():
     model, optimizer, training_dataloader, scheduler = accelerator.prepare(
         model, optimizer, training_dataloader, scheduler
     )
-    n = 1
+    n = 10
     train(n, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator)
 
 
