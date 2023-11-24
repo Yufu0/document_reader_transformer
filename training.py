@@ -11,7 +11,7 @@ from pretrained_model.pretrained_model import load_model, save_model
 import accelerate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Run on", device)
+print("Run on device:", device)
 
 
 def load_tokenizer():
@@ -20,11 +20,9 @@ def load_tokenizer():
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
-    dataset = dataset.shard(num_shards=100, index=0)
+    dataset = dataset.shard(num_shards=10, index=0)
     dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
     dataset.set_format("torch", columns=["image", "ocr"])
-    # dataset = dataset.map(lambda elem: {"image": elem["image"].permute(2, 0, 1).float() / 255.})
-    #
     train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
 
     return train_loader
@@ -91,7 +89,7 @@ def evaluate(model, img_test):
     model.eval()
     print(model(img_test))
 
-
+    
 def main():
     # load tokenizer
     tokenizer = load_tokenizer()

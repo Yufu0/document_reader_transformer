@@ -1,0 +1,23 @@
+name: Docker Publish CD
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+     - uses: actions/checkout@v2 
+     - name: Docker Push
+       env:
+         DOCKER_USER: ${{secrets.DOCKER_USER}}
+         DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+       run: |
+         docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
+         docker build . --file Dockerfile --tag $DOCKER_USER/document_reader_transformer:latest
+         docker push $DOCKER_USER/document_reader_transformer:latest
