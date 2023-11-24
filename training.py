@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 import torch
 from transformers import AutoTokenizer
 import gc
+import numpy as np
 
 from pretrained_model.pretrained_model import load_model, save_model
 import accelerate
@@ -19,10 +20,11 @@ def load_tokenizer():
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
+    dataset = dataset.shard(num_shards=100, index=0)
     dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
     dataset.set_format("torch", columns=["image", "ocr"])
-    # dataset = dataset.map(lambda elem: {"image": elem["image"].permute(2, 0, 1)})
-
+    # dataset = dataset.map(lambda elem: {"image": elem["image"].permute(2, 0, 1).float() / 255.})
+    #
     train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
 
     return train_loader
@@ -41,7 +43,12 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
     if len(ocr_tokens) < max_length:
         ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
 
+    img = np.array(image_ocr["image"])
+    img = img / 255.
+    img = img.astype(np.float32)
+    img = np.transpose(img, (2, 0, 1))
     return {
+        "image": img,
         "ocr": ocr_tokens
     }
 
@@ -53,7 +60,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.zero_grad()
 
             pixel_values, labels = batch["image"], batch["ocr"]
-            pixel_values = pixel_values.permute(0, 3, 1, 2).float() / 255
+            # pixel_values = pixel_values.permute(0, 3, 1, 2).float() / 255
 
             loss = model(pixel_values=pixel_values, labels=labels).loss
 
