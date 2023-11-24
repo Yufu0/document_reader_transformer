@@ -55,20 +55,17 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
 
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
     for epoch in range(epochs):
+        losses = []
         for batch in training_dataloader:
             accelerator.free_memory()
             optimizer.zero_grad()
 
             pixel_values, labels = batch["image"], batch["ocr"]
-            # pixel_values = pixel_values.permute(0, 3, 1, 2).float() / 255
 
             output = model(pixel_values=pixel_values, labels=labels)
 
             loss = output.loss
-            # losses.append(loss)
-
-            print(loss)
-            print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
+            losses.append(loss.item())
 
             # loss.backward()
             accelerator.backward(loss)
@@ -82,9 +79,11 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
 
             gc.collect()
 
-        if epoch % 1 == 0:
+        if epoch % 100 == 0:
+            print(''.join(tokenizer.batch_decode(labels)))
+            print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
+            print(f"epoch {epoch} : {sum(losses) / len(losses)}")
             save_model(model)
-        # print(f"epoch {epoch} : {sum(losses) / len(losses)}")
 
 
 def evaluate(model, img_test):
