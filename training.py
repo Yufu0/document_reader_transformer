@@ -21,7 +21,7 @@ def load_tokenizer():
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
-    dataset = dataset.shard(num_shards=10, index=0)
+    dataset = dataset.shard(num_shards=1000, index=0)
     dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
     dataset.set_format("torch", columns=["image", "ocr"])
     train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
@@ -71,7 +71,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.step()
             scheduler.step()
 
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             print(''.join(tokenizer.batch_decode(labels)))
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
@@ -112,7 +112,7 @@ def main():
     model, optimizer, training_dataloader, scheduler = accelerator.prepare(
         model, optimizer, training_dataloader, scheduler
     )
-    n = 10
+    n = 1001
     train(n, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator)
 
 
