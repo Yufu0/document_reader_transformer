@@ -21,8 +21,8 @@ def create_pretrained_model() -> VisionEncoderDecoderModel:
 
 def load_model() -> VisionEncoderDecoderModel:
     # load fine-tuned model
-    model = VisionEncoderDecoderModel.from_pretrained("./pretrained_model/model/")
+    model = VisionEncoderDecoderModel.from_pretrained("pretrained_model.py/model/")
     return model
 
 def save_model(model: VisionEncoderDecoderModel):
-    model.save_pretrained("./pretrained_model/model/")
+    model.save_pretrained("pretrained_model.py/model/")

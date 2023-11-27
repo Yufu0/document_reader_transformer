@@ -3,11 +3,12 @@ from functools import partial
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 import torch
+from tqdm import tqdm
 from transformers import AutoTokenizer
 import gc
 import numpy as np
 
-from pretrained_model.pretrained_model import load_model, save_model
+from model import load_model, save_model, push_to_hub
 import accelerate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -20,7 +21,7 @@ def load_tokenizer():
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
-    dataset = dataset.shard(num_shards=10, index=0)
+    dataset = dataset.shard(num_shards=1000, index=0)
     dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
     dataset.set_format("torch", columns=["image", "ocr"])
     train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
@@ -54,7 +55,7 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
     for epoch in range(epochs):
         losses = []
-        for batch in training_dataloader:
+        for batch in tqdm(training_dataloader):
             accelerator.free_memory()
             optimizer.zero_grad()
 
@@ -70,11 +71,14 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.step()
             scheduler.step()
 
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             print(''.join(tokenizer.batch_decode(labels)))
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
+
+        if epoch % 100 == 0:
             save_model(model)
+            push_to_hub(model)
 
         # del output
         del loss
@@ -111,7 +115,7 @@ def main():
     model, optimizer, training_dataloader, scheduler = accelerator.prepare(
         model, optimizer, training_dataloader, scheduler
     )
-    n = 10
+    n = 1001
     train(n, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator)
 
 
