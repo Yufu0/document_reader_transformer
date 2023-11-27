@@ -21,7 +21,7 @@ def load_tokenizer():
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
-    dataset = dataset.shard(num_shards=1000, index=0)
+    dataset = dataset.shard(num_shards=50, index=0)
     dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
     dataset.set_format("torch", columns=["image", "ocr"])
     train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
