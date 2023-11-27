@@ -8,7 +8,7 @@ from transformers import AutoTokenizer
 import gc
 import numpy as np
 
-from pretrained_model.pretrained_model import load_model, save_model
+from model import load_model, save_model
 import accelerate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
