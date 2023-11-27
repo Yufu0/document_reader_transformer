@@ -35,7 +35,7 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
         tokenizer = load_tokenizer()
 
     ocr_tokens = tokenizer(
-        " ".join([f"<{elem['label']} > {elem['text']} <{elem['label']} />" for elem in image_ocr["ocr"]])
+        " ".join([f"<{elem['label']}>{elem['text']}<{elem['label']}/>" for elem in image_ocr["ocr"]])
     )["input_ids"]
 
     if len(ocr_tokens) > max_length:
@@ -44,8 +44,8 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
         ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
 
     img = np.array(image_ocr["image"])
-    img = img / 255.
     img = img.astype(np.float32)
+    img = img / 255.
     img = np.transpose(img, (2, 0, 1))
     return {
         "image": img,
@@ -72,18 +72,18 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.step()
             scheduler.step()
 
-            # del output
-            del loss
-            del pixel_values
-            del labels
-
-            gc.collect()
-
         if epoch % 100 == 0:
             print(''.join(tokenizer.batch_decode(labels)))
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
             save_model(model)
+
+        # del output
+        del loss
+        del pixel_values
+        del labels
+
+        gc.collect()
 
 
 def evaluate(model, img_test):
