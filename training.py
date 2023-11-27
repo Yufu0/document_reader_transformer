@@ -75,6 +75,8 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             print(''.join(tokenizer.batch_decode(labels)))
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
+
+        if epoch % 100 == 0:
             save_model(model)
             push_to_hub(model)
 
@@ -113,7 +115,7 @@ def main():
     model, optimizer, training_dataloader, scheduler = accelerator.prepare(
         model, optimizer, training_dataloader, scheduler
     )
-    n = 1
+    n = 1001
     train(n, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator)
 
 
