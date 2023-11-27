@@ -3,6 +3,7 @@ from functools import partial
 from datasets import load_dataset
 from torch.utils.data import DataLoader
 import torch
+from tqdm import tqdm
 from transformers import AutoTokenizer
 import gc
 import numpy as np
@@ -54,7 +55,7 @@ def preprocessing(image_ocr, tokenizer=None, max_length=512):
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
     for epoch in range(epochs):
         losses = []
-        for batch in training_dataloader:
+        for batch in tqdm(training_dataloader):
             accelerator.free_memory()
             optimizer.zero_grad()
 
