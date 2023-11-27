@@ -8,7 +8,7 @@ from transformers import AutoTokenizer
 import gc
 import numpy as np
 
-from model import load_model, save_model
+from model import load_model, save_model, push_to_hub
 import accelerate
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -76,6 +76,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
             save_model(model)
+            push_to_hub(model)
 
         # del output
         del loss
@@ -112,7 +113,7 @@ def main():
     model, optimizer, training_dataloader, scheduler = accelerator.prepare(
         model, optimizer, training_dataloader, scheduler
     )
-    n = 1001
+    n = 1
     train(n, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator)
 
 

@@ -9,3 +9,6 @@ def load_model() -> VisionEncoderDecoderModel:
 
 def save_model(model: VisionEncoderDecoderModel):
     model.save_pretrained(LOCATION)
+
+def push_to_hub(model: VisionEncoderDecoderModel):
+    model.push_to_hub(LOCATION)
