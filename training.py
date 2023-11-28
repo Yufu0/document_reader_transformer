@@ -36,6 +36,7 @@ class IterDataset(IterableDataset):
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
+    dataset = dataset.shard(num_shards=10, index=0)
     dataset = IterDataset(preprocessing(dataset, tokenizer=tokenizer), len(dataset))
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
@@ -91,20 +92,20 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
             push_to_hub(model)
 
+        output.detach()
+        pixel_values.detach()
+        labels.detach()
+        loss.detach()
 
-        if device == "cuda":
-            output.detach()
-            pixel_values.detach()
-            labels.detach()
-            loss.detach()
-            torch.cuda.empty_cache()
-        # del output
+        del output
         del loss
         del pixel_values
         del output
         del labels
 
         gc.collect()
+        if device == "cuda":
+            torch.cuda.empty_cache()
 
 
 
