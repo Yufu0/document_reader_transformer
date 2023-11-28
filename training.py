@@ -75,6 +75,8 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.zero_grad()
       
             pixel_values, labels = batch
+            print(pixel_values.shape)
+            print(labels.shape)
             pixel_values = torch.Tensor(pixel_values)
             labels = torch.Tensor(labels)
 
