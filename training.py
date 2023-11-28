@@ -57,8 +57,9 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
         ocr_tokens = torch.tensor(ocr_tokens)
 
         image = line["image"]
-        while image.width * image.height > 3_000_000:
-            image = image.resize((image.width // 2, image.height // 2))
+        if image.width * image.height > 3_000_000:
+            ratio = 3_000_000 / (image.width * image.height)
+            image = image.resize((int(image.width * ratio), int(image.height * ratio)))
         img = np.array(image)
         img = img.transpose((2, 0, 1))
         img = img.astype(np.float32)
