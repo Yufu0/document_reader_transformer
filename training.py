@@ -35,9 +35,9 @@ class IterDataset(IterableDataset):
 
 
 def load_dataset_sroie(tokenizer=None):
-    dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
+    dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
     dataset = IterDataset(preprocessing(dataset, tokenizer=tokenizer), len(dataset))
-    train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
+    train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
 
 
