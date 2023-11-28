@@ -54,14 +54,14 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
             ocr_tokens = ocr_tokens[:max_length]
         if len(ocr_tokens) < max_length:
             ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
-        ocr_tokens = torch.tensor(ocr_tokens).to(device)
+        ocr_tokens = torch.tensor(ocr_tokens)
 
         image = line["image"]
         img = np.array(image)
         img = img.transpose((2, 0, 1))
         img = img.astype(np.float32)
         img = img / 255.
-        img = torch.tensor(img).to(device)
+        img = torch.tensor(img)
 
         yield (img, ocr_tokens)
 
