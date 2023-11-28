@@ -99,6 +99,9 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
 
         gc.collect()
 
+        if device == "cuda":
+            torch.cuda.empty_cache()
+
 
 def evaluate(model, img_test):
     model.eval()
