@@ -55,14 +55,14 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
             ocr_tokens = ocr_tokens[:max_length]
         if len(ocr_tokens) < max_length:
             ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
-        ocr_tokens = torch.tensor(ocr_tokens)
+        #ocr_tokens = torch.tensor(ocr_tokens)
 
         image = line["image"]
         img = np.array(image)
         img = img.transpose((2, 0, 1))
         img = img.astype(np.float32)
         img = img / 255.
-        img = torch.tensor(img)
+        #img = torch.tensor(img)
 
         yield (img, ocr_tokens)
 
@@ -73,8 +73,10 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
         for batch in tqdm(training_dataloader):
             accelerator.free_memory()
             optimizer.zero_grad()
-
+      
             pixel_values, labels = batch
+            pixel_values = torch.tensor(pixel_values)
+            labels = torch.tensor(labels)
 
             output = model(pixel_values=pixel_values, labels=labels)
 
