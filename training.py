@@ -62,7 +62,7 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
         img = img.transpose((2, 0, 1))
         img = img.astype(np.float32)
         img = img / 255.
-        #img = torch.tensor(img)
+        img = torch.tensor(img)
 
         yield (img, ocr_tokens)
 
@@ -75,7 +75,6 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.zero_grad()
       
             pixel_values, labels = batch
-            pixel_values = torch.tensor(pixel_values)
 
             output = model(pixel_values=pixel_values, labels=labels)
 
