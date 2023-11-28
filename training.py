@@ -1,7 +1,10 @@
+import random
 from functools import partial
 
+import datasets.io.parquet
+from PIL import Image
 from datasets import load_dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer
@@ -19,37 +22,48 @@ def load_tokenizer():
     return AutoTokenizer.from_pretrained("roberta-base")
 
 
+class IterDataset(IterableDataset):
+    def __init__(self, generator, size):
+        self.generator = generator
+        self.size = size
+
+    def __iter__(self):
+        return self.generator
+
+    def __len__(self):
+        return self.size
+
+
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train")
-    dataset = dataset.shard(num_shards=50, index=0)
-    dataset = dataset.map(partial(preprocessing, tokenizer=tokenizer))
-    dataset.set_format("torch", columns=["image", "ocr"])
-    train_loader = DataLoader(dataset=dataset, batch_size=1, shuffle=True)
-
+    dataset = IterDataset(preprocessing(dataset, tokenizer=tokenizer), len(dataset))
+    train_loader = DataLoader(dataset=dataset, batch_size=1, pin_memory=True)
     return train_loader
 
 
-def preprocessing(image_ocr, tokenizer=None, max_length=512):
+def preprocessing(dataset, tokenizer=None, max_length=512):
     if tokenizer is None:
         tokenizer = load_tokenizer()
 
-    ocr_tokens = tokenizer(
-        " ".join([f"<{elem['label']}>{elem['text']}<{elem['label']}/>" for elem in image_ocr["ocr"]])
-    )["input_ids"]
+    for line in dataset:
+        ocr_tokens = tokenizer(
+            " ".join([f"<{elem['label']}>{elem['text']}<{elem['label']}/>" for elem in line["ocr"]])
+        )["input_ids"]
 
-    if len(ocr_tokens) > max_length:
-        ocr_tokens = ocr_tokens[:max_length]
-    if len(ocr_tokens) < max_length:
-        ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
+        if len(ocr_tokens) > max_length:
+            ocr_tokens = ocr_tokens[:max_length]
+        if len(ocr_tokens) < max_length:
+            ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
+        ocr_tokens = torch.tensor(ocr_tokens).to(device)
 
-    img = np.array(image_ocr["image"])
-    img = img.astype(np.float32)
-    img = img / 255.
-    img = np.transpose(img, (2, 0, 1))
-    return {
-        "image": img,
-        "ocr": ocr_tokens
-    }
+        image = line["image"]
+        img = np.array(image)
+        img = img.transpose((2, 0, 1))
+        img = img.astype(np.float32)
+        img = img / 255.
+        img = torch.tensor(img).to(device)
+
+        yield (img, ocr_tokens)
 
 
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
@@ -59,7 +73,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             accelerator.free_memory()
             optimizer.zero_grad()
 
-            pixel_values, labels = batch["image"], batch["ocr"]
+            pixel_values, labels = batch
 
             output = model(pixel_values=pixel_values, labels=labels)
 
@@ -75,14 +89,12 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             print(''.join(tokenizer.batch_decode(labels)))
             print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
-
-        if epoch % 100 == 0:
-            save_model(model)
             push_to_hub(model)
 
         # del output
         del loss
         del pixel_values
+        del output
         del labels
 
         gc.collect()
@@ -92,7 +104,7 @@ def evaluate(model, img_test):
     model.eval()
     print(model(img_test))
 
-    
+
 def main():
     # load tokenizer
     tokenizer = load_tokenizer()
