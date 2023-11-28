@@ -85,8 +85,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.step()
             scheduler.step()
 
-
-            del output
+            #del output
             del loss
             del pixel_values
             del output
