@@ -91,6 +91,13 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             print(f"epoch {epoch} : {sum(losses) / len(losses)}")
             push_to_hub(model)
 
+
+        if device == "cuda":
+            output.detach()
+            pixel_values.detach()
+            labels.detach()
+            loss.detach()
+            torch.cuda.empty_cache()
         # del output
         del loss
         del pixel_values
@@ -99,8 +106,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
 
         gc.collect()
 
-        if device == "cuda":
-            torch.cuda.empty_cache()
+
 
 
 def evaluate(model, img_test):
