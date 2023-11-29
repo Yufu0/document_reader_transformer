@@ -25,15 +25,17 @@ class IterDataset(IterableDataset):
         self.tokenizer = tokenizer
 
     def __iter__(self):
-        return iter(self.generator)
+        if self.generator.gi_frame is None:
+            self.generator = preprocessing(self.dataset, tokenizer=self.tokenizer)
+        return self.generator
 
     def __len__(self):
         return self.size
 
 
+
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
-    dataset = dataset.shard(num_shards=100, index=0)
     dataset = IterDataset(dataset, tokenizer)
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
@@ -64,7 +66,6 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
         img = torch.tensor(img)
 
         yield (img, ocr_tokens)
-    yield from preprocessing(dataset, tokenizer=tokenizer, max_length=max_length)
 
 
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
