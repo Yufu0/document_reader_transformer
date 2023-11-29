@@ -64,6 +64,7 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
         img = torch.tensor(img)
 
         yield (img, ocr_tokens)
+    yield from preprocessing(dataset, tokenizer=tokenizer, max_length=max_length)
 
 
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
