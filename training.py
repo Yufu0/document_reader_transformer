@@ -1,8 +1,3 @@
-import random
-from functools import partial
-
-import datasets.io.parquet
-from PIL import Image
 from datasets import load_dataset
 from torch.utils.data import DataLoader, IterableDataset
 import torch
@@ -57,8 +52,8 @@ def preprocessing(dataset, tokenizer=None, max_length=512):
         ocr_tokens = torch.tensor(ocr_tokens)
 
         image = line["image"]
-        if image.width * image.height > 2_000_000:
-            ratio = 2_000_000 / (image.width * image.height)
+        if image.width * image.height > 1_000_000:
+            ratio = np.sqrt(1_000_000 / (image.width * image.height))
             image = image.resize((int(image.width * ratio), int(image.height * ratio)))
         img = np.array(image)
         img = img.transpose((2, 0, 1))
@@ -97,10 +92,10 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             if device == "cuda":
                 torch.cuda.empty_cache()
 
+        print(f"epoch {epoch} : {sum(losses) / len(losses)}")
         if epoch % 10 == 0:
-            print(''.join(tokenizer.batch_decode(labels)))
-            print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
-            print(f"epoch {epoch} : {sum(losses) / len(losses)}")
+            # print(''.join(tokenizer.batch_decode(labels)))
+            # print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
             push_to_hub(model)
 
             
