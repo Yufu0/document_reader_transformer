@@ -25,11 +25,7 @@ class IterDataset(IterableDataset):
         self.tokenizer = tokenizer
 
     def __iter__(self):
-        item = next(self.generator)
-        if item is None:
-            self.generator = preprocessing(self.dataset, tokenizer=self.tokenizer)
-            item = next(self.generator)
-        return item
+        return self.generator
 
     def __len__(self):
         return self.size
@@ -46,29 +42,29 @@ def load_dataset_sroie(tokenizer=None):
 def preprocessing(dataset, tokenizer=None, max_length=512):
     if tokenizer is None:
         tokenizer = load_tokenizer()
+    while True:
+        for line in dataset:
+            ocr_tokens = tokenizer(
+                " ".join([f"<{elem['label']}>{elem['text']}<{elem['label']}/>" for elem in line["ocr"]])
+            )["input_ids"]
 
-    for line in dataset:
-        ocr_tokens = tokenizer(
-            " ".join([f"<{elem['label']}>{elem['text']}<{elem['label']}/>" for elem in line["ocr"]])
-        )["input_ids"]
+            if len(ocr_tokens) > max_length:
+                ocr_tokens = ocr_tokens[:max_length]
+            if len(ocr_tokens) < max_length:
+                ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
+            ocr_tokens = torch.tensor(ocr_tokens)
 
-        if len(ocr_tokens) > max_length:
-            ocr_tokens = ocr_tokens[:max_length]
-        if len(ocr_tokens) < max_length:
-            ocr_tokens = ocr_tokens + [tokenizer.pad_token_id] * (max_length - len(ocr_tokens))
-        ocr_tokens = torch.tensor(ocr_tokens)
+            image = line["image"]
+            if image.width * image.height > 1_000_000:
+                ratio = np.sqrt(1_000_000 / (image.width * image.height))
+                image = image.resize((int(image.width * ratio), int(image.height * ratio)))
+            img = np.array(image)
+            img = img.transpose((2, 0, 1))
+            img = img.astype(np.float32)
+            img = img / 255.
+            img = torch.tensor(img)
 
-        image = line["image"]
-        if image.width * image.height > 1_000_000:
-            ratio = np.sqrt(1_000_000 / (image.width * image.height))
-            image = image.resize((int(image.width * ratio), int(image.height * ratio)))
-        img = np.array(image)
-        img = img.transpose((2, 0, 1))
-        img = img.astype(np.float32)
-        img = img / 255.
-        img = torch.tensor(img)
-
-        yield (img, ocr_tokens)
+            yield (img, ocr_tokens)
 
 
 def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, accelerator):
