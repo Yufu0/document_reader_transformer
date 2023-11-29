@@ -100,6 +100,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
         if epoch % 10 == 0:
             # print(''.join(tokenizer.batch_decode(labels)))
             # print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
+            save_model(model)
             push_to_hub(model)
 
 
