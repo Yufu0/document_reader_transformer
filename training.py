@@ -1,7 +1,5 @@
-from functools import partial
-
 from datasets import load_dataset
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, IterableDataset
 import torch
 from tqdm import tqdm
 from transformers import AutoTokenizer
