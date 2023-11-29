@@ -25,9 +25,11 @@ class IterDataset(IterableDataset):
         self.tokenizer = tokenizer
 
     def __iter__(self):
-        if self.generator is None:
+        item = next(self.generator)
+        if item is None:
             self.generator = preprocessing(self.dataset, tokenizer=self.tokenizer)
-        return self.generator
+            item = next(self.generator)
+        return item
 
     def __len__(self):
         return self.size
@@ -36,7 +38,7 @@ class IterDataset(IterableDataset):
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
     dataset = dataset.shard(num_shards=100, index=0)
-    dataset = IterDataset(preprocessing(dataset, tokenizer=tokenizer), len(dataset))
+    dataset = IterDataset(dataset, tokenizer)
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
 
