@@ -35,7 +35,6 @@ class IterDataset(IterableDataset):
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
-    dataset = dataset.shard(num_shards=1000, index=0)
     dataset = IterDataset(dataset, tokenizer)
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
@@ -98,9 +97,6 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
 
         print(f"epoch {epoch} : {sum(losses) / len(losses)}")
         if epoch % 10 == 0:
-            # print(''.join(tokenizer.batch_decode(labels)))
-            # print(''.join(tokenizer.batch_decode(output.logits.argmax(dim=-1))))
-            print("saving model?")
             save_model(model)
             push_to_hub(model)
 
