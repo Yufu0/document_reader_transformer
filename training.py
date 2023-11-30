@@ -109,7 +109,7 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
 
 def evaluate(model, pixel_values, labels, tokenizer):
     with torch.no_grad():
-        output = model(pixel_values)
+        output = model(pixel_values=pixel_values, labels=labels)
         output = output.logits.detach().cpu()
         output = output.argmax(dim=-1)
         print("True :", tokenizer.batch_decode(labels))
