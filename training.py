@@ -33,9 +33,9 @@ class IterDataset(IterableDataset):
         return self.size
 
 
-
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
+    dataset = dataset.shard(num_shards=1000, index=0)
     dataset = IterDataset(dataset, tokenizer)
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
@@ -87,10 +87,10 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             optimizer.step()
             scheduler.step()
 
-            del loss
-            del pixel_values
-            del output
-            del labels
+            # del loss
+            # del pixel_values
+            # del output
+            # del labels
 
             gc.collect()
             if device == "cuda":
@@ -104,14 +104,16 @@ def train(epochs, model, tokenizer, training_dataloader, optimizer, scheduler, a
             save_model(model)
             push_to_hub(model)
 
+            evaluate(model, pixel_values, labels, tokenizer)
 
 
-
-
-
-def evaluate(model, img_test):
-    model.eval()
-    print(model(img_test))
+def evaluate(model, pixel_values, labels, tokenizer):
+    with torch.no_grad():
+        output = model(pixel_values)
+        output = output.logits.detach().cpu()
+        output = output.argmax(dim=-1)
+        print("True :", tokenizer.batch_decode(labels))
+        print("Predicted :", tokenizer.batch_decode(output))
 
 
 def main():
