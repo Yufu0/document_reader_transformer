@@ -35,7 +35,7 @@ class IterDataset(IterableDataset):
 
 def load_dataset_sroie(tokenizer=None):
     dataset = load_dataset("arvindrajan92/sroie_document_understanding", split="train").shuffle()
-    dataset = dataset.shard(num_shards=100, index=0)
+    # dataset = dataset.shard(num_shards=100, index=0)
     dataset = IterDataset(dataset, tokenizer)
     train_loader = DataLoader(dataset=dataset, batch_size=1)
     return train_loader
