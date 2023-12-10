@@ -4,7 +4,7 @@ from datasets import load_dataset
 from torch.utils.data import DataLoader, IterableDataset
 import torch
 from tqdm import tqdm
-from transformers import AutoTokenizer, VisionEncoderDecoderModel, DonutProcessor
+from transformers import AutoTokenizer, VisionEncoderDecoderModel, DonutProcessor, AutoModel
 import gc
 import numpy as np
 
@@ -125,9 +125,12 @@ def main():
     # training_dataloader = load_dataset_sroie(tokenizer=tokenizer)
 
     # load the model
-    model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip")
+    # model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip")
 
-    processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip", use_fast=False)
+    # processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base", use_fast=False)
+
+    tokenizer = AutoTokenizer.from_pretrained("naver-clova-ix/donut-base")
+    model = AutoModel.from_pretrained("naver-clova-ix/donut-base")
     # model.train()
 #AutoTokenizer
     # model.config.decoder_start_token_id = tokenizer.cls_token_id
