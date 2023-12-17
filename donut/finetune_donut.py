@@ -5,13 +5,13 @@ from typing import List, Tuple, Any
 import numpy as np
 import torch
 from datasets import load_dataset
-from transformers import DonutProcessor, VisionEncoderDecoderModel
+from tqdm import tqdm
+from transformers import DonutProcessor, VisionEncoderDecoderModel, AdamW
 from torch.utils.data import Dataset, DataLoader
 from nltk import edit_distance
 import pytorch_lightning as pl
 import json
-
-LOCATION = './pretrained'
+from accelerate import Accelerator
 
 added_tokens = []
 
@@ -234,13 +234,12 @@ class DonutModelPLModule(pl.LightningModule):
 
 
 def main():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    LOCATION = './pretrained'
+    processor = DonutProcessor.from_pretrained(LOCATION)
     model = VisionEncoderDecoderModel.from_pretrained(LOCATION)
     max_length = model.config.decoder.max_length
-    image_size = model.config.encoder.image_size
-
-    processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base")
-    processor.image_processor.size = image_size[::-1]
-    processor.image_processor.do_align_long_axis = False
 
     train_dataset = DonutDataset(
         "naver-clova-ix/cord-v2",
@@ -266,61 +265,61 @@ def main():
 
     model.config.pad_token_id = processor.tokenizer.pad_token_id
     model.config.decoder_start_token_id = processor.tokenizer.convert_tokens_to_ids(['<s_cord-v2>'])[0]
-    print(model.config.decoder_start_token_id)
 
     train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=4)
 
-    print(added_tokens)
+    model.to(device)
+    model.train()
 
-    config = {"max_epochs": 30,
-              "val_check_interval": 0.2,  # how many times we want to validate during an epoch
-              "check_val_every_n_epoch": 1,
-              "gradient_clip_val": 1.0,
-              "num_training_samples_per_epoch": 800,
-              "lr": 3e-5,
-              "train_batch_sizes": [8],
-              "val_batch_sizes": [1],
-              # "seed":2022,
-              "num_nodes": 1,
-              "warmup_steps": 300,  # 800/8*30/10, 10%
-              "result_path": "./result",
-              "verbose": True,
-              }
-
-    model_module = DonutModelPLModule(config, processor, model, train_dataloader, val_dataloader)
-
-    from pytorch_lightning.callbacks import Callback, EarlyStopping
-
-    class PushToHubCallback(Callback):
-        def on_train_epoch_end(self, trainer, pl_module):
-            print(f"Save model, epoch {trainer.current_epoch}")
-            # pl_module.model.save(LOCATION)
-
-        def on_train_end(self, trainer, pl_module):
-            print(f"Pushing model to the hub after training")
-            # pl_module.processor.push_to_hub("nielsr/donut-demo",
-            #                                 commit_message=f"Training done")
-            # pl_module.model.push_to_hub("nielsr/donut-demo",
-            #                             commit_message=f"Training done")
-
-    early_stop_callback = EarlyStopping(monitor="val_edit_distance", patience=3, verbose=False, mode="min")
-
-    trainer = pl.Trainer(
-        accelerator="gpu",
-        devices=1,
-        max_epochs=config.get("max_epochs"),
-        val_check_interval=config.get("val_check_interval"),
-        check_val_every_n_epoch=config.get("check_val_every_n_epoch"),
-        gradient_clip_val=config.get("gradient_clip_val"),
-        precision=16,  # we'll use mixed precision
-        num_sanity_val_steps=0,
-        # logger=wandb_logger,
-        callbacks=[PushToHubCallback(), early_stop_callback],
+    optimizer = AdamW(model.parameters())
+    accelerator = Accelerator()
+    model, optimizer, train_dataloader = accelerator.prepare(
+        model, optimizer, train_dataloader
     )
+    train_losses = []
+    for epoch in range(10):
+        train_loss = 0
+        for batch in tqdm(train_dataloader):
+            optimizer.zero_grad()
+            pixel_values, labels, _ = batch
+            outputs = model(pixel_values, labels=labels)
+            loss = outputs.loss
+            accelerator.backward(loss)
+            optimizer.step()
+            train_loss += loss.item()
+        train_losses.append(train_loss / len(train_dataloader))
+        print(f"epoch {epoch} : {train_loss / len(train_dataloader)}")
 
-    trainer.fit(model_module)
-
+    # for inputs, targets in val_dataloader:
+    #     predictions = model(inputs)
+    #     # Gather all predictions and targets
+    #     all_predictions, all_targets = accelerator.gather_for_metrics((predictions, targets))
+    #     # Example of use with a *Datasets.Metric*
+    #     metric.add_batch(all_predictions, all_targets)
+    #
+    #
+    #
+    # from transformers import TrainingArguments, Trainer
+    #
+    # training_args = TrainingArguments(output_dir="test_trainer", evaluation_strategy="epoch")
+    # import evaluate
+    #
+    # metric = evaluate.load("accuracy")
+    #
+    # def compute_metrics(eval_pred):
+    #     logits, labels = eval_pred
+    #     predictions = np.argmax(logits, axis=-1)
+    #     return metric.compute(predictions=predictions, references=labels)
+    #
+    # trainer = Trainer(
+    #     model=model,
+    #     args=training_args,
+    #     train_dataset=train_dataloader,
+    #     eval_dataset=val_dataloader,
+    #     compute_metrics=compute_metrics,
+    # )
+    # trainer.train()
 
 if __name__ == '__main__':
     main()
