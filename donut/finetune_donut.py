@@ -1,5 +1,5 @@
 import re
-from random import random
+import random
 from typing import List, Tuple, Any
 
 import numpy as np
@@ -11,7 +11,9 @@ from nltk import edit_distance
 import pytorch_lightning as pl
 import json
 
-LOCATION = './donut/pretrained'
+LOCATION = './pretrained'
+
+added_tokens = []
 
 
 class DonutDataset(Dataset):
@@ -37,11 +39,11 @@ class DonutDataset(Dataset):
             max_length: int,
             split: str = "train",
             ignore_id: int = -100,
-            task_start_token: str = "",
+            task_start_token: str = "<s>",
             prompt_end_token: str = None,
             sort_json_key: bool = True,
-            processor: DonutProcessor = None,
             model: VisionEncoderDecoderModel = None,
+            processor: DonutProcessor = None,
     ):
         super().__init__()
 
@@ -54,9 +56,8 @@ class DonutDataset(Dataset):
 
         self.dataset = load_dataset(dataset_name_or_path, split=self.split)
         self.dataset_length = len(self.dataset)
-
-        self.processor = processor
         self.model = model
+        self.processor = processor
 
         self.gt_token_sequences = []
         for sample in self.dataset:
@@ -75,13 +76,13 @@ class DonutDataset(Dataset):
                         update_special_tokens_for_json_key=self.split == "train",
                         sort_json_key=self.sort_json_key,
                     )
-                    + processor.tokenizer.eos_token
+                    + self.processor.tokenizer.eos_token
                     for gt_json in gt_jsons  # load json from list of json
                 ]
             )
 
         self.add_tokens([self.task_start_token, self.prompt_end_token])
-        self.prompt_end_token_id = processor.tokenizer.convert_tokens_to_ids(self.prompt_end_token)
+        self.prompt_end_token_id = self.processor.tokenizer.convert_tokens_to_ids(self.prompt_end_token)
 
     def json2token(self, obj: Any, update_special_tokens_for_json_key: bool = True, sort_json_key: bool = True):
         """
@@ -98,20 +99,20 @@ class DonutDataset(Dataset):
                     keys = obj.keys()
                 for k in keys:
                     if update_special_tokens_for_json_key:
-                        self.add_tokens([fr"", fr""])
+                        self.add_tokens([fr"<s_{k}>", fr"</s_{k}>"])
                     output += (
-                            fr""
+                            fr"<s_{k}>"
                             + self.json2token(obj[k], update_special_tokens_for_json_key, sort_json_key)
-                            + fr""
+                            + fr"</s_{k}>"
                     )
                 return output
         elif type(obj) == list:
-            return r"".join(
+            return r"<sep/>".join(
                 [self.json2token(item, update_special_tokens_for_json_key, sort_json_key) for item in obj]
             )
         else:
             obj = str(obj)
-            if f"<{obj}/>" in self.added_tokens:
+            if f"<{obj}/>" in added_tokens:
                 obj = f"<{obj}/>"  # for categorical special tokens
             return obj
 
@@ -122,7 +123,7 @@ class DonutDataset(Dataset):
         newly_added_num = self.processor.tokenizer.add_tokens(list_of_tokens)
         if newly_added_num > 0:
             self.model.decoder.resize_token_embeddings(len(self.processor.tokenizer))
-            self.added_tokens.extend(list_of_tokens)
+            added_tokens.extend(list_of_tokens)
 
     def __len__(self) -> int:
         return self.dataset_length
@@ -162,6 +163,7 @@ class DonutDataset(Dataset):
 
 
 class DonutModelPLModule(pl.LightningModule):
+
     def __init__(self, config, processor, model, train_dataloader, val_dataloader):
         super().__init__()
         self.config = config
@@ -183,7 +185,7 @@ class DonutModelPLModule(pl.LightningModule):
         batch_size = pixel_values.shape[0]
         # we feed the prompt to the model
         decoder_input_ids = torch.full((batch_size, 1), self.model.config.decoder_start_token_id, device=self.device)
-        self.model.config.decoder.max_length
+
         outputs = self.model.generate(pixel_values,
                                       decoder_input_ids=decoder_input_ids,
                                       max_length=self.model.config.decoder.max_length,
@@ -203,7 +205,9 @@ class DonutModelPLModule(pl.LightningModule):
 
         scores = []
         for pred, answer in zip(predictions, answers):
-            pred = re.sub(r"(?:(?<=>) | (?=", "", answer, count=1)
+            pred = re.sub(r"(?:(?<=>) | (?=</s_))", "", pred)
+            # NOT NEEDED ANYMORE
+            # answer = re.sub(r"<.*?>", "", answer, count=1)
             answer = answer.replace(self.processor.tokenizer.eos_token, "")
             scores.append(edit_distance(pred, answer) / max(len(pred), len(answer)))
 
@@ -238,28 +242,84 @@ def main():
     processor.image_processor.size = image_size[::-1]
     processor.image_processor.do_align_long_axis = False
 
-    model.config.pad_token_id = processor.tokenizer.pad_token_id
-    model.config.decoder_start_token_id = processor.tokenizer.convert_tokens_to_ids([''])[0]
-
     train_dataset = DonutDataset(
         "naver-clova-ix/cord-v2",
         max_length=max_length,
-        split="train", task_start_token="",
-        prompt_end_token="",
-        sort_json_key=False
+        split="train",
+        task_start_token="<s_cord-v2>",
+        prompt_end_token="<s_cord-v2>",
+        sort_json_key=False,
+        processor=processor,
+        model=model
     )
 
     val_dataset = DonutDataset(
         "naver-clova-ix/cord-v2",
         max_length=max_length,
         split="validation",
-        task_start_token="",
-        prompt_end_token="",
-        sort_json_key=False
+        task_start_token="<s_cord-v2>",
+        prompt_end_token="<s_cord-v2>",
+        sort_json_key=False,
+        processor=processor,
+        model=model
     )
+
+    model.config.pad_token_id = processor.tokenizer.pad_token_id
+    model.config.decoder_start_token_id = processor.tokenizer.convert_tokens_to_ids(['<s_cord-v2>'])[0]
+    print(model.config.decoder_start_token_id)
 
     train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4)
     val_dataloader = DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=4)
+
+    print(added_tokens)
+
+    config = {"max_epochs": 30,
+              "val_check_interval": 0.2,  # how many times we want to validate during an epoch
+              "check_val_every_n_epoch": 1,
+              "gradient_clip_val": 1.0,
+              "num_training_samples_per_epoch": 800,
+              "lr": 3e-5,
+              "train_batch_sizes": [8],
+              "val_batch_sizes": [1],
+              # "seed":2022,
+              "num_nodes": 1,
+              "warmup_steps": 300,  # 800/8*30/10, 10%
+              "result_path": "./result",
+              "verbose": True,
+              }
+
+    model_module = DonutModelPLModule(config, processor, model, train_dataloader, val_dataloader)
+
+    from pytorch_lightning.callbacks import Callback, EarlyStopping
+
+    class PushToHubCallback(Callback):
+        def on_train_epoch_end(self, trainer, pl_module):
+            print(f"Save model, epoch {trainer.current_epoch}")
+            # pl_module.model.save(LOCATION)
+
+        def on_train_end(self, trainer, pl_module):
+            print(f"Pushing model to the hub after training")
+            # pl_module.processor.push_to_hub("nielsr/donut-demo",
+            #                                 commit_message=f"Training done")
+            # pl_module.model.push_to_hub("nielsr/donut-demo",
+            #                             commit_message=f"Training done")
+
+    early_stop_callback = EarlyStopping(monitor="val_edit_distance", patience=3, verbose=False, mode="min")
+
+    trainer = pl.Trainer(
+        accelerator="gpu",
+        devices=1,
+        max_epochs=config.get("max_epochs"),
+        val_check_interval=config.get("val_check_interval"),
+        check_val_every_n_epoch=config.get("check_val_every_n_epoch"),
+        gradient_clip_val=config.get("gradient_clip_val"),
+        precision=16,  # we'll use mixed precision
+        num_sanity_val_steps=0,
+        # logger=wandb_logger,
+        callbacks=[PushToHubCallback(), early_stop_callback],
+    )
+
+    trainer.fit(model_module)
 
 
 if __name__ == '__main__':
