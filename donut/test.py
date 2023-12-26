@@ -1,11 +1,25 @@
 import re
 
-from transformers import DonutProcessor, VisionEncoderDecoderModel
+from transformers import DonutProcessor, VisionEncoderDecoderModel, VisionEncoderDecoderConfig
 from datasets import load_dataset
 import torch
 
-processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
-model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
+
+image_size = [1280, 960]
+max_length = 768
+config = VisionEncoderDecoderConfig.from_pretrained("naver-clova-ix/donut-base")
+config.encoder.image_size = image_size  # (height, width)
+# update max_length of the decoder (for generation)
+config.decoder.max_length = max_length
+
+model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base", config=config)
+
+max_length = model.config.decoder.max_length
+image_size = model.config.encoder.image_size
+
+processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base")
+processor.image_processor.size = image_size[::-1]
+processor.image_processor.do_align_long_axis = False
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
