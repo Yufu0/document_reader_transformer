@@ -29,7 +29,7 @@ dataset = load_dataset("naver-clova-ix/cord-v2", split="validation")
 
 print(len(dataset))
 with torch.no_grad():
-    for data in dataset:
+    for data in dataset[:10]:
         image = data["image"]
         print(image)
         # prepare decoder inputs
