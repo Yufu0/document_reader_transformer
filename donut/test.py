@@ -4,8 +4,8 @@ from transformers import DonutProcessor, VisionEncoderDecoderModel
 from datasets import load_dataset
 import torch
 
-processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
-model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base")
+processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base")
+model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-cord-v2")
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
