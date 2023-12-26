@@ -205,6 +205,7 @@ def main():
                                                     return_tensors="pt").input_ids
 
             # pixel_values = processor(image, return_tensors="pt").pixel_values
+            pixel_values = pixel_values.unsqueeze(0)
 
             outputs = model.generate(
                 pixel_values.to(device),
