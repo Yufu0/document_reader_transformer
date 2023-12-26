@@ -19,7 +19,7 @@ def main():
     processor.image_processor.size = image_size[::-1]
     processor.image_processor.do_align_long_axis = False
 
-    LOCATION = './pretrained'
+    LOCATION = './donut/pretrained'
     model.save_pretrained(LOCATION)
     processor.save_pretrained(LOCATION)
 
