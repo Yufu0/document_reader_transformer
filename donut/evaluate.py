@@ -3,7 +3,7 @@ from typing import Any, List, Tuple
 
 from nltk import edit_distance
 from torch.utils.data import DataLoader, Dataset
-from transformers import DonutProcessor, VisionEncoderDecoderModel
+from transformers import DonutProcessor, VisionEncoderDecoderModel, VisionEncoderDecoderConfig
 from datasets import load_dataset
 import torch
 
@@ -163,11 +163,25 @@ class DonutDataset(Dataset):
 
 
 def main():
-    LOCATION = 'naver-clova-ix/donut-base' #'./donut/pretrained'
-    processor = DonutProcessor.from_pretrained(LOCATION)
-    model = VisionEncoderDecoderModel.from_pretrained(LOCATION)
-    dataset = load_dataset("naver-clova-ix/cord-v2", split="validation")
+    # LOCATION = 'naver-clova-ix/donut-base' #'./donut/pretrained'
+    # processor = DonutProcessor.from_pretrained(LOCATION)
+    # model = VisionEncoderDecoderModel.from_pretrained(LOCATION)
+    image_size = [1280, 960]
+    max_length = 768
+
+    config = VisionEncoderDecoderConfig.from_pretrained("naver-clova-ix/donut-base")
+    config.encoder.image_size = image_size  # (height, width)
+    # update max_length of the decoder (for generation)
+    config.decoder.max_length = max_length
+
+    model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base", config=config)
+
     max_length = model.config.decoder.max_length
+    image_size = model.config.encoder.image_size
+
+    processor = DonutProcessor.from_pretrained("naver-clova-ix/donut-base")
+    processor.image_processor.size = image_size[::-1]
+    processor.image_processor.do_align_long_axis = False
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.eval()
