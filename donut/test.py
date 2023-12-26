@@ -27,10 +27,12 @@ model.to(device)
 # load document image
 # dataset = load_dataset("hf-internal-testing/example-documents", split="test")
 dataset = load_dataset("naver-clova-ix/cord-v2", split="validation")
+dataset = dataset.shard(num_shards=10, index=0)
+
 
 print(len(dataset))
 with torch.no_grad():
-    for data in tqdm(dataset[:10]):
+    for data in tqdm(dataset):
         image = data["image"]
         print(image)
         # prepare decoder inputs
