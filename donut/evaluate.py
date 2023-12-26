@@ -197,6 +197,7 @@ def main():
 
     with torch.no_grad():
         for data in val_dataset:
+            print(data)
             image = data[0]
             print(image)
             # prepare decoder inputs
