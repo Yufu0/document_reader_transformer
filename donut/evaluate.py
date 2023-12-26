@@ -218,7 +218,7 @@ def main():
                 return_dict_in_generate=False,
             )
 
-            sequence = processor.batch_decode(outputs.sequences)[0]
+            sequence = processor.batch_decode(outputs)[0]
             print(sequence)
             sequence = sequence.replace(processor.tokenizer.eos_token, "").replace(processor.tokenizer.pad_token, "")
             sequence = re.sub(r"<.*?>", "", sequence, count=1).strip()  # remove first task start token
