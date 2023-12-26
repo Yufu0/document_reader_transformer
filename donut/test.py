@@ -3,6 +3,7 @@ import re
 from transformers import DonutProcessor, VisionEncoderDecoderModel, VisionEncoderDecoderConfig
 from datasets import load_dataset
 import torch
+from tqdm import tqdm
 
 
 image_size = [1280, 960]
@@ -29,7 +30,7 @@ dataset = load_dataset("naver-clova-ix/cord-v2", split="validation")
 
 print(len(dataset))
 with torch.no_grad():
-    for data in dataset[:10]:
+    for data in tqdm(dataset[:10]):
         image = data["image"]
         print(image)
         # prepare decoder inputs
