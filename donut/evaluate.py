@@ -195,6 +195,11 @@ def main():
         model=model
     )
 
+    print('max_length',model.decoder.config.max_position_embeddings,
+                'pad_token_id',processor.tokenizer.pad_token_id,
+                'eos_token_id',processor.tokenizer.eos_token_id,
+                'bad_words_ids', [[processor.tokenizer.unk_token_id]])
+
     with torch.no_grad():
         for data in val_dataset:
             pixel_values = data[0]
