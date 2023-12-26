@@ -197,15 +197,14 @@ def main():
 
     with torch.no_grad():
         for data in val_dataset:
-            print(data)
-            image = data[0]
-            print(image)
+            pixel_values = data[0]
+
             # prepare decoder inputs
             task_prompt = "<s_cord-v2>"
             decoder_input_ids = processor.tokenizer(task_prompt, add_special_tokens=False,
                                                     return_tensors="pt").input_ids
 
-            pixel_values = processor(image, return_tensors="pt").pixel_values
+            # pixel_values = processor(image, return_tensors="pt").pixel_values
 
             outputs = model.generate(
                 pixel_values.to(device),
