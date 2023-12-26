@@ -197,7 +197,7 @@ def main():
 
     with torch.no_grad():
         for data in val_dataset:
-            image = data["image"]
+            image = data[0]
             print(image)
             # prepare decoder inputs
             task_prompt = "<s_cord-v2>"
